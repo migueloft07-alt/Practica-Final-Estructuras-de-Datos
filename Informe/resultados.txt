@@ -1,0 +1,689 @@
+C:\Users\User\CLionProjects\untitled\cmake-build-debug\untitled.exe
+======================================================================================================
+  BENCHMARK: DialSort vs. RadixSort LSD vs. std::sort
+  Materia : ST0245 - Estructuras de Datos y Algoritmos ÔÇö EAFIT
+  Docente : Alexander Narvaez Berrio
+======================================================================================================
+  Compilador   : g++ 13.1.0
+  Flags        : -O3 -std=c++17 -pthread
+  Hilos        : 8
+  Calentamiento: 3 ejecuciones descartadas
+  Medicion     : mejor de 7 ejecuciones
+  Semilla      : 20260321
+======================================================================================================
+
+
+======================================================================================================
+  SECCION 1 ÔÇö VISUALIZACION DEL COMPORTAMIENTO INTERNO
+======================================================================================================
+
+  Entrada de prueba: n=16 elementos, universo U=64
+
+  --- RadixSort LSD ---
+
+  [RadixSort] n=16 | BASE=256 | PASADAS=4  (8 bits por pasada, del menos al mas significativo)
+  Entrada  : [47, 19, 13, 50, 24, 35, 63, 48, 35, 6, 59, 57, 20, 47, 37, 54]
+  Pasada 0 (bits 0-7): [6, 13, 19, 20, 24, 35, 35, 37, 47, 47, 48, 50, 54, 57, 59, 63]
+  Pasada 1 (bits 8-15): [6, 13, 19, 20, 24, 35, 35, 37, 47, 47, 48, 50, 54, 57, 59, 63]
+  Pasada 2 (bits 16-23): [6, 13, 19, 20, 24, 35, 35, 37, 47, 47, 48, 50, 54, 57, 59, 63]
+  Pasada 3 (bits 24-31): [6, 13, 19, 20, 24, 35, 35, 37, 47, 47, 48, 50, 54, 57, 59, 63]
+  Resultado: [6, 13, 19, 20, 24, 35, 35, 37, 47, 47, 48, 50, 54, 57, 59, 63]
+
+  --- DialSort ---
+
+  [DialSort] n=16 | U=58 | rango=[6, 63]
+  Entrada  : [47, 19, 13, 50, 24, 35, 63, 48, 35, 6, 59, 57, 20, 47, 37, 54]
+  Histograma (valores presentes): [6]=1 [13]=1 [19]=1 [20]=1 [24]=1 [35]=2 [37]=1 [47]=2 [48]=1 [50]=1 [54]=1 [57]=1 [59
+]=1 [63]=1
+  Resultado: [6, 13, 19, 20, 24, 35, 35, 37, 47, 47, 48, 50, 54, 57, 59, 63]
+
+  DIFERENCIA CLAVE:
+
+  +------------------+----------------------------------+----------------------------------+
+  | Caracteristica   | DialSort                         | RadixSort LSD                    |
+  +------------------+----------------------------------+----------------------------------+
+  | Estructura       | Histograma plano de tamano U     | 256 cubetas fijas por pasada     |
+  | Pasadas          | 1 pasada sobre todo U            | 4 pasadas sobre n elementos      |
+  | Memoria          | O(U) ÔÇö crece con el universo     | O(n+256) ÔÇö fija respecto a U     |
+  | Depende de U?    | SI                               | NO                               |
+  +------------------+----------------------------------+----------------------------------+
+
+
+======================================================================================================
+  SECCION 2 ÔÇö COMPLEJIDAD ALGORITMICA (Notacion Big O)
+======================================================================================================
+
+  +-----------------------+---------------+---------------+---------------+----------+----------+
+  | Algoritmo             | Mejor Caso    | Caso Promedio | Peor Caso     | Espacio  | Compar.? |
+  +-----------------------+---------------+---------------+---------------+----------+----------+
+  | std::sort (introsort) | O(n log n)    | O(n log n)    | O(n log n)    | O(log n) | SI       |
+  | DialSort              | O(n + U)      | O(n + U)      | O(n + U)      | O(U)     | NO       |
+  | DialSort-Paralelo     | O(n/t + U)    | O(n/t + U)    | O(n/t + U)    | O(t*U)   | NO       |
+  | RadixSort LSD         | O(n * k)      | O(n * k)      | O(n * k)      | O(n + B) | NO       |
+  +-----------------------+---------------+---------------+---------------+----------+----------+
+
+  Leyenda:
+    n = cantidad de elementos      U = tamano del universo (max - min + 1)
+    t = numero de hilos            k = pasadas de digitos = 4 (base B=256)
+
+  Observaciones:
+    - DialSort y RadixSort son NO comparativos (no usan < ni >)
+    - std::sort garantiza O(n log n) sin importar los datos de entrada
+    - DialSort se degrada cuando U >> n (universo muy disperso)
+    - RadixSort mantiene O(n*k) sin importar el valor de U
+
+
+======================================================================================================
+  SECCION 3 ÔÇö TIEMPO DE EJECUCION REAL
+======================================================================================================
+
+  Columna 'vs std::sort': cuantas veces mas rapido que el introsort de GCC
+
+  Algoritmo             Dist.       N           U       ms (mejor)   M claves/s    vs std::sort  mem KB
+  -------------------------------------------------------------------------------------------------
+  std::sort             uniforme    10000       256     1.185        8.439         1.000         1 KB
+  DialSort              uniforme    10000       256     0.073        137.741       16.322        1 KB
+  RadixSort LSD         uniforme    10000       256     0.299        33.445        3.963         80 KB
+  DialSort-Paralelo     uniforme    10000       256     0.354        28.249        3.347         9 KB
+
+  std::sort             sesgada     10000       256     1.159        8.630         1.000         1 KB
+  DialSort              sesgada     10000       256     0.054        185.529       21.497        1 KB
+  RadixSort LSD         sesgada     10000       256     0.312        32.020        3.710         80 KB
+  DialSort-Paralelo     sesgada     10000       256     0.451        22.183        2.570         9 KB
+
+  std::sort             ordenada    10000       256     0.632        15.830        1.000         1 KB
+  DialSort              ordenada    10000       256     0.111        90.009        5.686         1 KB
+  RadixSort LSD         ordenada    10000       256     0.312        32.082        2.027         80 KB
+  DialSort-Paralelo     ordenada    10000       256     0.269        37.244        2.353         9 KB
+
+  std::sort             inversa     10000       256     0.719        13.902        1.000         1 KB
+  DialSort              inversa     10000       256     0.056        178.891       12.868        1 KB
+  RadixSort LSD         inversa     10000       256     0.300        33.367        2.400         80 KB
+  DialSort-Paralelo     inversa     10000       256     0.280        35.778        2.574         9 KB
+
+  .................................................................................................
+  std::sort             uniforme    10000       1024    1.307        7.651         1.000         1 KB
+  DialSort              uniforme    10000       1024    0.059        169.779       22.190        4 KB
+  RadixSort LSD         uniforme    10000       1024    0.295        33.910        4.432         80 KB
+  DialSort-Paralelo     uniforme    10000       1024    0.267        37.439        4.893         36 KB
+
+  std::sort             sesgada     10000       1024    1.160        8.618         1.000         1 KB
+  DialSort              sesgada     10000       1024    0.054        184.843       21.449        4 KB
+  RadixSort LSD         sesgada     10000       1024    0.311        32.175        3.734         80 KB
+  DialSort-Paralelo     sesgada     10000       1024    0.270        36.996        4.293         36 KB
+
+  std::sort             ordenada    10000       1024    0.552        18.119        1.000         1 KB
+  DialSort              ordenada    10000       1024    0.078        127.551       7.040         4 KB
+  RadixSort LSD         ordenada    10000       1024    0.320        31.211        1.723         80 KB
+  DialSort-Paralelo     ordenada    10000       1024    0.337        29.656        1.637         36 KB
+
+  std::sort             inversa     10000       1024    0.633        15.803        1.000         1 KB
+  DialSort              inversa     10000       1024    0.073        137.741       8.716         4 KB
+  RadixSort LSD         inversa     10000       1024    0.307        32.531        2.059         80 KB
+  DialSort-Paralelo     inversa     10000       1024    0.402        24.900        1.576         36 KB
+
+  .................................................................................................
+  std::sort             uniforme    10000       65536   1.402        7.132         1.000         1 KB
+  DialSort              uniforme    10000       65536   0.301        33.167        4.650         256 KB
+  RadixSort LSD         uniforme    10000       65536   0.315        31.766        4.454         80 KB
+  DialSort-Paralelo     uniforme    10000       65536   2.758        3.625         0.508         2304 KB
+
+  std::sort             sesgada     10000       65536   1.363        7.339         1.000         1 KB
+  DialSort              sesgada     10000       65536   0.252        39.714        5.411         256 KB
+  RadixSort LSD         sesgada     10000       65536   0.292        34.282        4.671         80 KB
+  DialSort-Paralelo     sesgada     10000       65536   2.776        3.602         0.491         2304 KB
+
+  std::sort             ordenada    10000       65536   0.655        15.274        1.000         1 KB
+  DialSort              ordenada    10000       65536   0.296        33.784        2.212         256 KB
+  RadixSort LSD         ordenada    10000       65536   0.297        33.670        2.204         80 KB
+  DialSort-Paralelo     ordenada    10000       65536   2.626        3.808         0.249         2304 KB
+
+  std::sort             inversa     10000       65536   0.615        16.263        1.000         1 KB
+  DialSort              inversa     10000       65536   0.285        35.075        2.157         256 KB
+  RadixSort LSD         inversa     10000       65536   0.290        34.423        2.117         80 KB
+  DialSort-Paralelo     inversa     10000       65536   2.576        3.881         0.239         2304 KB
+
+  .................................................................................................
+  std::sort             uniforme    100000      256     15.410       6.489         1.000         1 KB
+  DialSort              uniforme    100000      256     0.512        195.236       30.086        1 KB
+  RadixSort LSD         uniforme    100000      256     2.803        35.675        5.498         783 KB
+  DialSort-Paralelo     uniforme    100000      256     0.754        132.591       20.432        9 KB
+
+  std::sort             sesgada     100000      256     12.917       7.742         1.000         1 KB
+  DialSort              sesgada     100000      256     0.463        216.169       27.922        1 KB
+  RadixSort LSD         sesgada     100000      256     2.591        38.600        4.986         783 KB
+  DialSort-Paralelo     sesgada     100000      256     0.750        133.404       17.231        9 KB
+
+  std::sort             ordenada    100000      256     8.352        11.974        1.000         1 KB
+  DialSort              ordenada    100000      256     0.475        210.305       17.564        1 KB
+  RadixSort LSD         ordenada    100000      256     2.777        36.010        3.007         783 KB
+  DialSort-Paralelo     ordenada    100000      256     0.721        138.754       11.588        9 KB
+
+  std::sort             inversa     100000      256     8.433        11.858        1.000         1 KB
+  DialSort              inversa     100000      256     0.470        212.585       17.928        1 KB
+  RadixSort LSD         inversa     100000      256     2.642        37.847        3.192         783 KB
+  DialSort-Paralelo     inversa     100000      256     0.776        128.866       10.867        9 KB
+
+  .................................................................................................
+  std::sort             uniforme    100000      1024    14.103       7.091         1.000         1 KB
+  DialSort              uniforme    100000      1024    0.463        215.796       30.433        4 KB
+  RadixSort LSD         uniforme    100000      1024    2.648        37.760        5.325         783 KB
+  DialSort-Paralelo     uniforme    100000      1024    0.726        137.665       19.414        36 KB
+
+  std::sort             sesgada     100000      1024    13.305       7.516         1.000         1 KB
+  DialSort              sesgada     100000      1024    0.470        212.585       28.283        4 KB
+  RadixSort LSD         sesgada     100000      1024    2.525        39.612        5.270         783 KB
+  DialSort-Paralelo     sesgada     100000      1024    0.758        131.891       17.547        36 KB
+
+  std::sort             ordenada    100000      1024    7.037        14.211        1.000         1 KB
+  DialSort              ordenada    100000      1024    0.538        185.943       13.085        4 KB
+  RadixSort LSD         ordenada    100000      1024    2.600        38.466        2.707         783 KB
+  DialSort-Paralelo     ordenada    100000      1024    0.761        131.475       9.252         36 KB
+
+  std::sort             inversa     100000      1024    7.431        13.456        1.000         1 KB
+  DialSort              inversa     100000      1024    0.554        180.505       13.414        4 KB
+  RadixSort LSD         inversa     100000      1024    2.604        38.407        2.854         783 KB
+  DialSort-Paralelo     inversa     100000      1024    0.690        145.012       10.777        36 KB
+
+  .................................................................................................
+  std::sort             uniforme    100000      65536   16.268       6.147         1.000         1 KB
+  DialSort              uniforme    100000      65536   0.958        104.428       16.988        256 KB
+  RadixSort LSD         uniforme    100000      65536   2.513        39.796        6.474         783 KB
+  DialSort-Paralelo     uniforme    100000      65536   3.631        27.539        4.480         2304 KB
+
+  std::sort             sesgada     100000      65536   16.012       6.245         1.000         1 KB
+  DialSort              sesgada     100000      65536   0.776        128.833       20.629        256 KB
+  RadixSort LSD         sesgada     100000      65536   2.587        38.656        6.190         783 KB
+  DialSort-Paralelo     sesgada     100000      65536   3.257        30.702        4.916         2304 KB
+
+  std::sort             ordenada    100000      65536   7.088        14.107        1.000         1 KB
+  DialSort              ordenada    100000      65536   1.502        66.565        4.718         256 KB
+  RadixSort LSD         ordenada    100000      65536   2.746        36.411        2.581         783 KB
+  DialSort-Paralelo     ordenada    100000      65536   3.758        26.611        1.886         2304 KB
+
+  std::sort             inversa     100000      65536   6.810        14.685        1.000         1 KB
+  DialSort              inversa     100000      65536   1.604        62.352        4.246         256 KB
+  RadixSort LSD         inversa     100000      65536   2.843        35.175        2.395         783 KB
+  DialSort-Paralelo     inversa     100000      65536   3.763        26.573        1.810         2304 KB
+
+  .................................................................................................
+  std::sort             uniforme    1000000     256     154.797      6.460         1.000         1 KB
+  DialSort              uniforme    1000000     256     4.495        222.460       34.436        1 KB
+  RadixSort LSD         uniforme    1000000     256     25.844       38.694        5.990         7814 KB
+  DialSort-Paralelo     uniforme    1000000     256     4.369        228.880       35.430        9 KB
+
+  std::sort             sesgada     1000000     256     152.867      6.542         1.000         1 KB
+  DialSort              sesgada     1000000     256     4.463        224.090       34.256        1 KB
+  RadixSort LSD         sesgada     1000000     256     24.597       40.655        6.215         7814 KB
+  DialSort-Paralelo     sesgada     1000000     256     4.301        232.499       35.541        9 KB
+
+  std::sort             ordenada    1000000     256     98.287       10.174        1.000         1 KB
+  DialSort              ordenada    1000000     256     4.349        229.933       22.599        1 KB
+  RadixSort LSD         ordenada    1000000     256     26.326       37.985        3.733         7814 KB
+  DialSort-Paralelo     ordenada    1000000     256     4.295        232.802       22.881        9 KB
+
+  std::sort             inversa     1000000     256     111.083      9.002         1.000         1 KB
+  DialSort              inversa     1000000     256     4.743        210.833       23.420        1 KB
+  RadixSort LSD         inversa     1000000     256     26.630       37.552        4.171         7814 KB
+  DialSort-Paralelo     inversa     1000000     256     4.516        221.459       24.600        9 KB
+
+  .................................................................................................
+  std::sort             uniforme    1000000     1024    168.325      5.941         1.000         1 KB
+  DialSort              uniforme    1000000     1024    4.646        215.230       36.229        4 KB
+  RadixSort LSD         uniforme    1000000     1024    25.487       39.235        6.604         7814 KB
+  DialSort-Paralelo     uniforme    1000000     1024    4.325        231.187       38.915        36 KB
+
+  std::sort             sesgada     1000000     1024    157.913      6.333         1.000         1 KB
+  DialSort              sesgada     1000000     1024    4.640        215.522       34.034        4 KB
+  RadixSort LSD         sesgada     1000000     1024    27.576       36.264        5.727         7814 KB
+  DialSort-Paralelo     sesgada     1000000     1024    4.277        233.814       36.922        36 KB
+
+  std::sort             ordenada    1000000     1024    90.406       11.061        1.000         1 KB
+  DialSort              ordenada    1000000     1024    4.695        212.997       19.256        4 KB
+  RadixSort LSD         ordenada    1000000     1024    25.128       39.796        3.598         7814 KB
+  DialSort-Paralelo     ordenada    1000000     1024    4.430        225.749       20.409        36 KB
+
+  std::sort             inversa     1000000     1024    96.996       10.310        1.000         1 KB
+  DialSort              inversa     1000000     1024    4.404        227.066       22.024        4 KB
+  RadixSort LSD         inversa     1000000     1024    24.740       40.420        3.921         7814 KB
+  DialSort-Paralelo     inversa     1000000     1024    4.322        231.390       22.444        36 KB
+
+  .................................................................................................
+  std::sort             uniforme    1000000     65536   187.893      5.322         1.000         1 KB
+  DialSort              uniforme    1000000     65536   6.001        166.639       31.310        256 KB
+  RadixSort LSD         uniforme    1000000     65536   25.646       38.992        7.326         7814 KB
+  DialSort-Paralelo     uniforme    1000000     65536   6.647        150.439       28.267        2304 KB
+
+  std::sort             sesgada     1000000     65536   169.513      5.899         1.000         1 KB
+  DialSort              sesgada     1000000     65536   5.284        189.247       32.080        256 KB
+  RadixSort LSD         sesgada     1000000     65536   26.886       37.194        6.305         7814 KB
+  DialSort-Paralelo     sesgada     1000000     65536   6.834        146.325       24.804        2304 KB
+
+  std::sort             ordenada    1000000     65536   73.552       13.596        1.000         1 KB
+  DialSort              ordenada    1000000     65536   6.512        153.570       11.295        256 KB
+  RadixSort LSD         ordenada    1000000     65536   29.423       33.987        2.500         7814 KB
+  DialSort-Paralelo     ordenada    1000000     65536   7.847        127.434       9.373         2304 KB
+
+  std::sort             inversa     1000000     65536   77.866       12.843        1.000         1 KB
+  DialSort              inversa     1000000     65536   7.057        141.695       11.033        256 KB
+  RadixSort LSD         inversa     1000000     65536   31.333       31.915        2.485         7814 KB
+  DialSort-Paralelo     inversa     1000000     65536   7.895        126.662       9.863         2304 KB
+
+  .................................................................................................
+  std::sort             uniforme    10000000    256     1857.096     5.385         1.000         1 KB
+  DialSort              uniforme    10000000    256     46.654       214.345       39.806        1 KB
+  RadixSort LSD         uniforme    10000000    256     261.212      38.283        7.110         78127 KB
+  DialSort-Paralelo     uniforme    10000000    256     37.502       266.652       49.520        9 KB
+
+  std::sort             sesgada     10000000    256     1835.750     5.447         1.000         1 KB
+  DialSort              sesgada     10000000    256     47.933       208.625       38.298        1 KB
+  RadixSort LSD         sesgada     10000000    256     257.701      38.805        7.124         78127 KB
+  DialSort-Paralelo     sesgada     10000000    256     36.310       275.406       50.558        9 KB
+
+  std::sort             ordenada    10000000    256     1325.717     7.543         1.000         1 KB
+  DialSort              ordenada    10000000    256     47.247       211.653       28.059        1 KB
+  RadixSort LSD         ordenada    10000000    256     254.327      39.319        5.213         78127 KB
+  DialSort-Paralelo     ordenada    10000000    256     37.083       269.662       35.750        9 KB
+
+  std::sort             inversa     10000000    256     1384.780     7.221         1.000         1 KB
+  DialSort              inversa     10000000    256     46.022       217.287       30.089        1 KB
+  RadixSort LSD         inversa     10000000    256     253.385      39.466        5.465         78127 KB
+  DialSort-Paralelo     inversa     10000000    256     35.715       279.995       38.773        9 KB
+
+  .................................................................................................
+  std::sort             uniforme    10000000    1024    1873.075     5.339         1.000         1 KB
+  DialSort              uniforme    10000000    1024    46.891       213.263       39.946        4 KB
+  RadixSort LSD         uniforme    10000000    1024    272.078      36.754        6.884         78127 KB
+  DialSort-Paralelo     uniforme    10000000    1024    35.642       280.572       52.553        36 KB
+
+  std::sort             sesgada     10000000    1024    1841.430     5.431         1.000         1 KB
+  DialSort              sesgada     10000000    1024    46.344       215.776       39.734        4 KB
+  RadixSort LSD         sesgada     10000000    1024    263.615      37.934        6.985         78127 KB
+  DialSort-Paralelo     sesgada     10000000    1024    35.687       280.215       51.600        36 KB
+
+  std::sort             ordenada    10000000    1024    1268.793     7.882         1.000         1 KB
+  DialSort              ordenada    10000000    1024    45.563       219.475       27.847        4 KB
+  RadixSort LSD         ordenada    10000000    1024    250.000      40.000        5.075         78127 KB
+  DialSort-Paralelo     ordenada    10000000    1024    37.711       265.172       33.645        36 KB
+
+  std::sort             inversa     10000000    1024    1317.210     7.592         1.000         1 KB
+  DialSort              inversa     10000000    1024    45.898       217.876       28.699        4 KB
+  RadixSort LSD         inversa     10000000    1024    251.363      39.783        5.240         78127 KB
+  DialSort-Paralelo     inversa     10000000    1024    36.180       276.394       36.407        36 KB
+
+  .................................................................................................
+  std::sort             uniforme    10000000    65536   2049.052     4.880         1.000         1 KB
+  DialSort              uniforme    10000000    65536   49.301       202.836       41.562        256 KB
+  RadixSort LSD         uniforme    10000000    65536   264.203      37.850        7.756         78127 KB
+  DialSort-Paralelo     uniforme    10000000    65536   38.971       256.601       52.579        2304 KB
+
+  std::sort             sesgada     10000000    65536   1991.785     5.021         1.000         1 KB
+  DialSort              sesgada     10000000    65536   51.199       195.315       38.903        256 KB
+  RadixSort LSD         sesgada     10000000    65536   278.814      35.866        7.144         78127 KB
+  DialSort-Paralelo     sesgada     10000000    65536   40.047       249.708       49.737        2304 KB
+
+  std::sort             ordenada    10000000    65536   931.647      10.734        1.000         1 KB
+  DialSort              ordenada    10000000    65536   53.201       187.965       17.512        256 KB
+  RadixSort LSD         ordenada    10000000    65536   284.227      35.183        3.278         78127 KB
+  DialSort-Paralelo     ordenada    10000000    65536   41.460       241.196       22.471        2304 KB
+
+  std::sort             inversa     10000000    65536   992.199      10.079        1.000         1 KB
+  DialSort              inversa     10000000    65536   52.717       189.694       18.821        256 KB
+  RadixSort LSD         inversa     10000000    65536   284.101      35.199        3.492         78127 KB
+  DialSort-Paralelo     inversa     10000000    65536   39.236       254.869       25.288        2304 KB
+
+
+======================================================================================================
+  SECCION 4 ÔÇö CONSUMO DE MEMORIA
+======================================================================================================
+
+  Complejidad espacial teorica:
+
+  +-----------------------+----------+----------------------------------------------+
+  | Algoritmo             | Espacio  | Descripcion                                  |
+  +-----------------------+----------+----------------------------------------------+
+  | std::sort             | O(log n) | Pila de recursion del introsort              |
+  | DialSort              | O(U)     | Histograma del tamano del universo           |
+  | DialSort-Paralelo     | O(t * U) | Un histograma por cada hilo                 |
+  | RadixSort LSD         | O(n + B) | Buffer de salida + 256 contadores           |
+  +-----------------------+----------+----------------------------------------------+
+
+  Mediciones de RAM adicional (delta RSS) en configuraciones representativas:
+
+  +-----------------------+--------------+----------------+----------------+
+  | Algoritmo             | N=100K U=256 | N=100K U=65536 | N=1M   U=65536 |
+  +-----------------------+--------------+----------------+----------------+
+  | std::sort             | 1 KB         | 1 KB           | 1 KB           |
+  | DialSort              | 1 KB         | 256 KB         | 256 KB         |
+  | DialSort-Paralelo     | 9 KB         | 2304 KB        | 2304 KB        |
+  | RadixSort LSD         | 783 KB       | 783 KB         | 7814 KB        |
+  +-----------------------+--------------+----------------+----------------+
+
+  Nota: Los valores se calculan con sizeof() sobre las estructuras reales
+        que cada algoritmo reserva en memoria. Son exactos y multiplataforma.
+
+
+======================================================================================================
+  SECCION 5 ÔÇö ANALISIS COMPARATIVO FINAL
+======================================================================================================
+
+  Resumen: DialSort vs RadixSort LSD
+
+  +------------------------------------------+----------+
+  | Metrica                                  | Valor    |
+  +------------------------------------------+----------+
+  | Configuraciones medidas                  | 48       |
+  | Casos donde DialSort es mas rapido       | 48   /48   |
+  | Casos donde RadixSort es mas rapido      | 0    /48   |
+  | Ratio promedio  DialSort / RadixSort     | 0.279 x  |
+  | Ratio minimo   (DialSort mas rapido)     | 0.165 x  |
+  | Ratio maximo   (RadixSort mas rapido)    | 0.997 x  |
+  +------------------------------------------+----------+
+
+  Resultados por tamano de universo (U):
+
+  +--------+---------------------+---------------------+
+  |   U    | DialSort gana        | RadixSort gana      |
+  +--------+---------------------+---------------------+
+  | 256    | 16 / 16             | 0 / 16              |
+  | 1024   | 16 / 16             | 0 / 16              |
+  | 65536  | 16 / 16             | 0 / 16              |
+  +--------+---------------------+---------------------+
+
+  (ratio < 1.0 => DialSort es mas rapido que RadixSort)
+  (ratio > 1.0 => RadixSort es mas rapido que DialSort)
+
+  Conclusiones por criterio:
+
+  1. COMPLEJIDAD ALGORITMICA
+     DialSort          : O(n+U) tiempo  |  O(U) espacio
+     DialSort-Paralelo : O(n/t+U) tiempo  |  O(t*U) espacio
+     RadixSort LSD     : O(n*k) tiempo  |  O(n+256) espacio  [k=4 fijo]
+     std::sort         : O(n log n) tiempo  |  O(log n) espacio
+
+  2. TIEMPO DE EJECUCION
+     U pequeno (256, 1024)  -> DialSort gana: histograma cabe en cache L1/L2
+     U grande  (65536+)     -> RadixSort compite: memoria O(n+256) fija
+     Ambos superan ampliamente a std::sort en datos enteros
+
+  3. CONSUMO DE MEMORIA
+     RadixSort LSD    : O(n+256)  ÔÇö mas predecible, no crece con U
+     DialSort         : O(U)      ÔÇö puede ser costoso para U grande
+     DialSort-Paralelo: O(t*U)    ÔÇö el mas costoso en RAM
+     std::sort        : O(log n)  ÔÇö el mas eficiente en memoria
+
+  Recomendacion segun escenario:
+
+  +--------------------------------+---------------------------+
+  | Escenario                      | Algoritmo recomendado     |
+  +--------------------------------+---------------------------+
+  | U <= 1024 y n grande           | DialSort o Dial-Paralelo  |
+  | U >= 65536 o U desconocido     | RadixSort LSD             |
+  | Datos no enteros / U enorme    | std::sort                 |
+  +--------------------------------+---------------------------+
+
+  Verificacion de correctitud: TODAS LAS PRUEBAS PASARON
+
+
+======================================================================================================
+  SECCION 6 ÔÇö SALIDA CSV (para graficas en hoja de calculo)
+======================================================================================================
+
+algoritmo,distribucion,N,U,ms_mejor,Mclaves_s,aceleracion_vs_std,mem_kb
+std::sort,uniforme,10000,256,1.185,8.439,1.000,1
+DialSort,uniforme,10000,256,0.073,137.741,16.322,1
+RadixSort LSD,uniforme,10000,256,0.299,33.445,3.963,80
+DialSort-Paralelo,uniforme,10000,256,0.354,28.249,3.347,9
+std::sort,sesgada,10000,256,1.159,8.630,1.000,1
+DialSort,sesgada,10000,256,0.054,185.529,21.497,1
+RadixSort LSD,sesgada,10000,256,0.312,32.020,3.710,80
+DialSort-Paralelo,sesgada,10000,256,0.451,22.183,2.570,9
+std::sort,ordenada,10000,256,0.632,15.830,1.000,1
+DialSort,ordenada,10000,256,0.111,90.009,5.686,1
+RadixSort LSD,ordenada,10000,256,0.312,32.082,2.027,80
+DialSort-Paralelo,ordenada,10000,256,0.269,37.244,2.353,9
+std::sort,inversa,10000,256,0.719,13.902,1.000,1
+DialSort,inversa,10000,256,0.056,178.891,12.868,1
+RadixSort LSD,inversa,10000,256,0.300,33.367,2.400,80
+DialSort-Paralelo,inversa,10000,256,0.280,35.778,2.574,9
+std::sort,uniforme,10000,1024,1.307,7.651,1.000,1
+DialSort,uniforme,10000,1024,0.059,169.779,22.190,4
+RadixSort LSD,uniforme,10000,1024,0.295,33.910,4.432,80
+DialSort-Paralelo,uniforme,10000,1024,0.267,37.439,4.893,36
+std::sort,sesgada,10000,1024,1.160,8.618,1.000,1
+DialSort,sesgada,10000,1024,0.054,184.843,21.449,4
+RadixSort LSD,sesgada,10000,1024,0.311,32.175,3.734,80
+DialSort-Paralelo,sesgada,10000,1024,0.270,36.996,4.293,36
+std::sort,ordenada,10000,1024,0.552,18.119,1.000,1
+DialSort,ordenada,10000,1024,0.078,127.551,7.040,4
+RadixSort LSD,ordenada,10000,1024,0.320,31.211,1.723,80
+DialSort-Paralelo,ordenada,10000,1024,0.337,29.656,1.637,36
+std::sort,inversa,10000,1024,0.633,15.803,1.000,1
+DialSort,inversa,10000,1024,0.073,137.741,8.716,4
+RadixSort LSD,inversa,10000,1024,0.307,32.531,2.059,80
+DialSort-Paralelo,inversa,10000,1024,0.402,24.900,1.576,36
+std::sort,uniforme,10000,65536,1.402,7.132,1.000,1
+DialSort,uniforme,10000,65536,0.301,33.167,4.650,256
+RadixSort LSD,uniforme,10000,65536,0.315,31.766,4.454,80
+DialSort-Paralelo,uniforme,10000,65536,2.758,3.625,0.508,2304
+std::sort,sesgada,10000,65536,1.363,7.339,1.000,1
+DialSort,sesgada,10000,65536,0.252,39.714,5.411,256
+RadixSort LSD,sesgada,10000,65536,0.292,34.282,4.671,80
+DialSort-Paralelo,sesgada,10000,65536,2.776,3.602,0.491,2304
+std::sort,ordenada,10000,65536,0.655,15.274,1.000,1
+DialSort,ordenada,10000,65536,0.296,33.784,2.212,256
+RadixSort LSD,ordenada,10000,65536,0.297,33.670,2.204,80
+DialSort-Paralelo,ordenada,10000,65536,2.626,3.808,0.249,2304
+std::sort,inversa,10000,65536,0.615,16.263,1.000,1
+DialSort,inversa,10000,65536,0.285,35.075,2.157,256
+RadixSort LSD,inversa,10000,65536,0.290,34.423,2.117,80
+DialSort-Paralelo,inversa,10000,65536,2.576,3.881,0.239,2304
+std::sort,uniforme,100000,256,15.410,6.489,1.000,1
+DialSort,uniforme,100000,256,0.512,195.236,30.086,1
+RadixSort LSD,uniforme,100000,256,2.803,35.675,5.498,783
+DialSort-Paralelo,uniforme,100000,256,0.754,132.591,20.432,9
+std::sort,sesgada,100000,256,12.917,7.742,1.000,1
+DialSort,sesgada,100000,256,0.463,216.169,27.922,1
+RadixSort LSD,sesgada,100000,256,2.591,38.600,4.986,783
+DialSort-Paralelo,sesgada,100000,256,0.750,133.404,17.231,9
+std::sort,ordenada,100000,256,8.352,11.974,1.000,1
+DialSort,ordenada,100000,256,0.475,210.305,17.564,1
+RadixSort LSD,ordenada,100000,256,2.777,36.010,3.007,783
+DialSort-Paralelo,ordenada,100000,256,0.721,138.754,11.588,9
+std::sort,inversa,100000,256,8.433,11.858,1.000,1
+DialSort,inversa,100000,256,0.470,212.585,17.928,1
+RadixSort LSD,inversa,100000,256,2.642,37.847,3.192,783
+DialSort-Paralelo,inversa,100000,256,0.776,128.866,10.867,9
+std::sort,uniforme,100000,1024,14.103,7.091,1.000,1
+DialSort,uniforme,100000,1024,0.463,215.796,30.433,4
+RadixSort LSD,uniforme,100000,1024,2.648,37.760,5.325,783
+DialSort-Paralelo,uniforme,100000,1024,0.726,137.665,19.414,36
+std::sort,sesgada,100000,1024,13.305,7.516,1.000,1
+DialSort,sesgada,100000,1024,0.470,212.585,28.283,4
+RadixSort LSD,sesgada,100000,1024,2.525,39.612,5.270,783
+DialSort-Paralelo,sesgada,100000,1024,0.758,131.891,17.547,36
+std::sort,ordenada,100000,1024,7.037,14.211,1.000,1
+DialSort,ordenada,100000,1024,0.538,185.943,13.085,4
+RadixSort LSD,ordenada,100000,1024,2.600,38.466,2.707,783
+DialSort-Paralelo,ordenada,100000,1024,0.761,131.475,9.252,36
+std::sort,inversa,100000,1024,7.431,13.456,1.000,1
+DialSort,inversa,100000,1024,0.554,180.505,13.414,4
+RadixSort LSD,inversa,100000,1024,2.604,38.407,2.854,783
+DialSort-Paralelo,inversa,100000,1024,0.690,145.012,10.777,36
+std::sort,uniforme,100000,65536,16.268,6.147,1.000,1
+DialSort,uniforme,100000,65536,0.958,104.428,16.988,256
+RadixSort LSD,uniforme,100000,65536,2.513,39.796,6.474,783
+DialSort-Paralelo,uniforme,100000,65536,3.631,27.539,4.480,2304
+std::sort,sesgada,100000,65536,16.012,6.245,1.000,1
+DialSort,sesgada,100000,65536,0.776,128.833,20.629,256
+RadixSort LSD,sesgada,100000,65536,2.587,38.656,6.190,783
+DialSort-Paralelo,sesgada,100000,65536,3.257,30.702,4.916,2304
+std::sort,ordenada,100000,65536,7.088,14.107,1.000,1
+DialSort,ordenada,100000,65536,1.502,66.565,4.718,256
+RadixSort LSD,ordenada,100000,65536,2.746,36.411,2.581,783
+DialSort-Paralelo,ordenada,100000,65536,3.758,26.611,1.886,2304
+std::sort,inversa,100000,65536,6.810,14.685,1.000,1
+DialSort,inversa,100000,65536,1.604,62.352,4.246,256
+RadixSort LSD,inversa,100000,65536,2.843,35.175,2.395,783
+DialSort-Paralelo,inversa,100000,65536,3.763,26.573,1.810,2304
+std::sort,uniforme,1000000,256,154.797,6.460,1.000,1
+DialSort,uniforme,1000000,256,4.495,222.460,34.436,1
+RadixSort LSD,uniforme,1000000,256,25.844,38.694,5.990,7814
+DialSort-Paralelo,uniforme,1000000,256,4.369,228.880,35.430,9
+std::sort,sesgada,1000000,256,152.867,6.542,1.000,1
+DialSort,sesgada,1000000,256,4.463,224.090,34.256,1
+RadixSort LSD,sesgada,1000000,256,24.597,40.655,6.215,7814
+DialSort-Paralelo,sesgada,1000000,256,4.301,232.499,35.541,9
+std::sort,ordenada,1000000,256,98.287,10.174,1.000,1
+DialSort,ordenada,1000000,256,4.349,229.933,22.599,1
+RadixSort LSD,ordenada,1000000,256,26.326,37.985,3.733,7814
+DialSort-Paralelo,ordenada,1000000,256,4.295,232.802,22.881,9
+std::sort,inversa,1000000,256,111.083,9.002,1.000,1
+DialSort,inversa,1000000,256,4.743,210.833,23.420,1
+RadixSort LSD,inversa,1000000,256,26.630,37.552,4.171,7814
+DialSort-Paralelo,inversa,1000000,256,4.516,221.459,24.600,9
+std::sort,uniforme,1000000,1024,168.325,5.941,1.000,1
+DialSort,uniforme,1000000,1024,4.646,215.230,36.229,4
+RadixSort LSD,uniforme,1000000,1024,25.487,39.235,6.604,7814
+DialSort-Paralelo,uniforme,1000000,1024,4.325,231.187,38.915,36
+std::sort,sesgada,1000000,1024,157.913,6.333,1.000,1
+DialSort,sesgada,1000000,1024,4.640,215.522,34.034,4
+RadixSort LSD,sesgada,1000000,1024,27.576,36.264,5.727,7814
+DialSort-Paralelo,sesgada,1000000,1024,4.277,233.814,36.922,36
+std::sort,ordenada,1000000,1024,90.406,11.061,1.000,1
+DialSort,ordenada,1000000,1024,4.695,212.997,19.256,4
+RadixSort LSD,ordenada,1000000,1024,25.128,39.796,3.598,7814
+DialSort-Paralelo,ordenada,1000000,1024,4.430,225.749,20.409,36
+std::sort,inversa,1000000,1024,96.996,10.310,1.000,1
+DialSort,inversa,1000000,1024,4.404,227.066,22.024,4
+RadixSort LSD,inversa,1000000,1024,24.740,40.420,3.921,7814
+DialSort-Paralelo,inversa,1000000,1024,4.322,231.390,22.444,36
+std::sort,uniforme,1000000,65536,187.893,5.322,1.000,1
+DialSort,uniforme,1000000,65536,6.001,166.639,31.310,256
+RadixSort LSD,uniforme,1000000,65536,25.646,38.992,7.326,7814
+DialSort-Paralelo,uniforme,1000000,65536,6.647,150.439,28.267,2304
+std::sort,sesgada,1000000,65536,169.513,5.899,1.000,1
+DialSort,sesgada,1000000,65536,5.284,189.247,32.080,256
+RadixSort LSD,sesgada,1000000,65536,26.886,37.194,6.305,7814
+DialSort-Paralelo,sesgada,1000000,65536,6.834,146.325,24.804,2304
+std::sort,ordenada,1000000,65536,73.552,13.596,1.000,1
+DialSort,ordenada,1000000,65536,6.512,153.570,11.295,256
+RadixSort LSD,ordenada,1000000,65536,29.423,33.987,2.500,7814
+DialSort-Paralelo,ordenada,1000000,65536,7.847,127.434,9.373,2304
+std::sort,inversa,1000000,65536,77.866,12.843,1.000,1
+DialSort,inversa,1000000,65536,7.057,141.695,11.033,256
+RadixSort LSD,inversa,1000000,65536,31.333,31.915,2.485,7814
+DialSort-Paralelo,inversa,1000000,65536,7.895,126.662,9.863,2304
+std::sort,uniforme,10000000,256,1857.096,5.385,1.000,1
+DialSort,uniforme,10000000,256,46.654,214.345,39.806,1
+RadixSort LSD,uniforme,10000000,256,261.212,38.283,7.110,78127
+DialSort-Paralelo,uniforme,10000000,256,37.502,266.652,49.520,9
+std::sort,sesgada,10000000,256,1835.750,5.447,1.000,1
+DialSort,sesgada,10000000,256,47.933,208.625,38.298,1
+RadixSort LSD,sesgada,10000000,256,257.701,38.805,7.124,78127
+DialSort-Paralelo,sesgada,10000000,256,36.310,275.406,50.558,9
+std::sort,ordenada,10000000,256,1325.717,7.543,1.000,1
+DialSort,ordenada,10000000,256,47.247,211.653,28.059,1
+RadixSort LSD,ordenada,10000000,256,254.327,39.319,5.213,78127
+DialSort-Paralelo,ordenada,10000000,256,37.083,269.662,35.750,9
+std::sort,inversa,10000000,256,1384.780,7.221,1.000,1
+DialSort,inversa,10000000,256,46.022,217.287,30.089,1
+RadixSort LSD,inversa,10000000,256,253.385,39.466,5.465,78127
+DialSort-Paralelo,inversa,10000000,256,35.715,279.995,38.773,9
+std::sort,uniforme,10000000,1024,1873.075,5.339,1.000,1
+DialSort,uniforme,10000000,1024,46.891,213.263,39.946,4
+RadixSort LSD,uniforme,10000000,1024,272.078,36.754,6.884,78127
+DialSort-Paralelo,uniforme,10000000,1024,35.642,280.572,52.553,36
+std::sort,sesgada,10000000,1024,1841.430,5.431,1.000,1
+DialSort,sesgada,10000000,1024,46.344,215.776,39.734,4
+RadixSort LSD,sesgada,10000000,1024,263.615,37.934,6.985,78127
+DialSort-Paralelo,sesgada,10000000,1024,35.687,280.215,51.600,36
+std::sort,ordenada,10000000,1024,1268.793,7.882,1.000,1
+DialSort,ordenada,10000000,1024,45.563,219.475,27.847,4
+RadixSort LSD,ordenada,10000000,1024,250.000,40.000,5.075,78127
+DialSort-Paralelo,ordenada,10000000,1024,37.711,265.172,33.645,36
+std::sort,inversa,10000000,1024,1317.210,7.592,1.000,1
+DialSort,inversa,10000000,1024,45.898,217.876,28.699,4
+RadixSort LSD,inversa,10000000,1024,251.363,39.783,5.240,78127
+DialSort-Paralelo,inversa,10000000,1024,36.180,276.394,36.407,36
+std::sort,uniforme,10000000,65536,2049.052,4.880,1.000,1
+DialSort,uniforme,10000000,65536,49.301,202.836,41.562,256
+RadixSort LSD,uniforme,10000000,65536,264.203,37.850,7.756,78127
+DialSort-Paralelo,uniforme,10000000,65536,38.971,256.601,52.579,2304
+std::sort,sesgada,10000000,65536,1991.785,5.021,1.000,1
+DialSort,sesgada,10000000,65536,51.199,195.315,38.903,256
+RadixSort LSD,sesgada,10000000,65536,278.814,35.866,7.144,78127
+DialSort-Paralelo,sesgada,10000000,65536,40.047,249.708,49.737,2304
+std::sort,ordenada,10000000,65536,931.647,10.734,1.000,1
+DialSort,ordenada,10000000,65536,53.201,187.965,17.512,256
+RadixSort LSD,ordenada,10000000,65536,284.227,35.183,3.278,78127
+DialSort-Paralelo,ordenada,10000000,65536,41.460,241.196,22.471,2304
+std::sort,inversa,10000000,65536,992.199,10.079,1.000,1
+DialSort,inversa,10000000,65536,52.717,189.694,18.821,256
+RadixSort LSD,inversa,10000000,65536,284.101,35.199,3.492,78127
+DialSort-Paralelo,inversa,10000000,65536,39.236,254.869,25.288,2304
+
+
+======================================================================================================
+  SECCION 7 ÔÇö EXPORTACION DE DATASETS
+======================================================================================================
+
+  Carpeta de salida: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets
+
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U256_uniforme.csv  (100000 re
+gistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U256_sesgada.csv  (100000 reg
+istros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U256_ordenada.csv  (100000 re
+gistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U256_inversa.csv  (100000 reg
+istros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U1024_uniforme.csv  (100000 r
+egistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U1024_sesgada.csv  (100000 re
+gistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U1024_ordenada.csv  (100000 r
+egistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U1024_inversa.csv  (100000 re
+gistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U65536_uniforme.csv  (100000
+registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U65536_sesgada.csv  (100000 r
+egistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U65536_ordenada.csv  (100000
+registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n100000_U65536_inversa.csv  (100000 r
+egistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U256_uniforme.csv  (1000000
+registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U256_sesgada.csv  (1000000 r
+egistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U256_ordenada.csv  (1000000
+registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U256_inversa.csv  (1000000 r
+egistros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U1024_uniforme.csv  (1000000
+ registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U1024_sesgada.csv  (1000000
+registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U1024_ordenada.csv  (1000000
+ registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U1024_inversa.csv  (1000000
+registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U65536_uniforme.csv  (100000
+0 registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U65536_sesgada.csv  (1000000
+ registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U65536_ordenada.csv  (100000
+0 registros)
+  Escrito: C:\Users\User\CLionProjects\untitled\cmake-build-debug\datasets/dataset_n1000000_U65536_inversa.csv  (1000000
+ registros)
+
+  Total archivos exportados: 24
+
+======================================================================================================
+  Benchmark completado exitosamente.
+======================================================================================================
+
+
+Process finished with exit code 0
