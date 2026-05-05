@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DialSort vs RadixSort — Simulador</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg:        #030810;
+            --panel:     #080f1e;
+            --panel2:    #0c1628;
+            --border:    #152442;
+            --border2:   #1e3660;
+            --text:      #e8f2ff;
+            --muted:     #7a99c4;
+            --dim:       #3a5880;
+            --dial-c:    #3dffa0;
+            --dial-d:    #1a8a52;
+            --radix-c:   #ff7b54;
+            --radix-d:   #8a3520;
+            --accent:    #ffcc44;
+            --accent2:   #5599ff;
+            --purple:    #c084fc;
+            --glow-d:    rgba(61,255,160,0.15);
+            --glow-r:    rgba(255,123,84,0.15);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── GRID BG ── */
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background-image:
+                    linear-gradient(rgba(21,36,66,.35) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(21,36,66,.35) 1px, transparent 1px);
+            background-size: 40px 40px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .wrap {
+            position: relative;
+            z-index: 1;
+            max-width: 1700px;
+            margin: 0 auto;
+            padding: 18px;
+        }
+
+        /* ── HEADER ── */
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 14px;
+            background: linear-gradient(135deg, rgba(8,15,30,.95), rgba(12,22,40,.95));
+            border: 1px solid var(--border2);
+            border-radius: 20px;
+            padding: 16px 22px;
+            margin-bottom: 16px;
+            box-shadow: 0 0 40px rgba(0,0,0,.6);
+        }
+
+        .header-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: .04em;
+            flex: 1;
+        }
+        .header-title .vs {
+            color: var(--accent);
+            margin: 0 6px;
+        }
+        .header-title .ds { color: var(--dial-c); }
+        .header-title .rs { color: var(--radix-c); }
+
+        .badge {
+            font-size: 11px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border2);
+            background: rgba(21,36,66,.5);
+            color: var(--muted);
+            letter-spacing: .06em;
+        }
+
+        /* ── CONTROLS ── */
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: flex-end;
+            background: rgba(8,15,30,.9);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 14px 18px;
+            margin-bottom: 16px;
+        }
+
+        .ctrl-group { display: flex; flex-direction: column; gap: 5px; }
+        .ctrl-label {
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            color: var(--muted);
+        }
+
+        input[type="text"], input[type="number"], select {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            background: rgba(12,22,40,.9);
+            border: 1px solid var(--border2);
+            border-radius: 10px;
+            color: var(--text);
+            padding: 8px 12px;
+            outline: none;
+            transition: border-color .2s;
+        }
+        input[type="text"] { width: 320px; }
+        input[type="number"] { width: 80px; }
+        input:focus, select:focus { border-color: var(--accent2); }
+
+        .btn {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: .05em;
+            padding: 9px 18px;
+            border-radius: 10px;
+            border: 1px solid var(--border2);
+            background: rgba(21,36,66,.7);
+            color: var(--text);
+            cursor: pointer;
+            transition: all .18s;
+            align-self: flex-end;
+        }
+        .btn:hover { background: rgba(40,70,120,.8); transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.4); }
+        .btn:disabled { opacity: .35; cursor: not-allowed; transform: none; }
+        .btn.primary { background: rgba(85,153,255,.2); border-color: var(--accent2); color: #b0d4ff; }
+        .btn.primary:hover { background: rgba(85,153,255,.35); }
+        .btn.danger  { background: rgba(255,80,80,.1); border-color: #aa3333; color: #ffaaaa; }
+
+        /* ── SIMULATORS GRID ── */
+        .sim-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            margin-bottom: 14px;
+        }
+        @media (max-width: 1050px) { .sim-grid { grid-template-columns: 1fr; } }
+
+        .sim-panel {
+            background: rgba(8,15,30,.92);
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sim-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .sim-dot {
+            width: 12px; height: 12px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .sim-header-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: .06em;
+        }
+
+        .panel-dial   { border-color: var(--dial-d); box-shadow: 0 0 30px var(--glow-d); }
+        .panel-radix  { border-color: var(--radix-d); box-shadow: 0 0 30px var(--glow-r); }
+        .dot-dial     { background: var(--dial-c); box-shadow: 0 0 8px var(--dial-c); }
+        .dot-radix    { background: var(--radix-c); box-shadow: 0 0 8px var(--radix-c); }
+        .title-dial   { color: var(--dial-c); }
+        .title-radix  { color: var(--radix-c); }
+
+        svg {
+            width: 100%;
+            height: auto;
+            display: block;
+            background: #05090f;
+        }
+
+        .sim-footer {
+            padding: 10px 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .stat-chip {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border2);
+            background: rgba(21,36,66,.4);
+            color: var(--muted);
+        }
+        .stat-chip span { color: var(--text); font-weight: 700; }
+
+        .explain {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.65;
+            background: rgba(5,9,15,.8);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 9px 12px;
+            min-height: 44px;
+        }
+
+        .output-box {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--accent);
+            background: rgba(5,9,15,.8);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 7px 12px;
+            min-height: 28px;
+            word-break: break-all;
+        }
+
+        /* ── LEGEND ── */
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 11px;
+            color: var(--muted);
+            padding: 0 2px;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+        /* ── STEP COUNTER ── */
+        #stepBadge {
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border2);
+            background: rgba(21,36,66,.5);
+            color: var(--accent);
+            font-weight: 700;
+            align-self: flex-end;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--dim);
+            padding: 12px 0 4px;
+            letter-spacing: .05em;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+
+    <!-- HEADER -->
+    <header>
+        <div class="header-title">
+            <span class="ds">DialSort</span>
+            <span class="vs">vs</span>
+            <span class="rs">RadixSort LSD</span>
+            &mdash; Simulador Visual
+        </div>
+        <div class="badge">ST0245 · EAFIT</div>
+        <div class="badge">Algoritmos No Comparativos</div>
+        <div id="stepBadge">Fase: inicio</div>
+    </header>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+        <div class="ctrl-group">
+            <div class="ctrl-label">Vector de entrada</div>
+            <input type="text" id="vecInput" value="9,3,12,1,7,4,14,2,12,3,0,15,7,7,1,10" />
+        </div>
+        <div class="ctrl-group">
+            <div class="ctrl-label">Valor máximo</div>
+            <input type="number" id="maxVal" min="3" max="63" value="15" />
+        </div>
+        <button class="btn" id="btnApply">Aplicar</button>
+        <button class="btn" id="btnRandom">Aleatorio</button>
+        <button class="btn primary" id="btnStep">▶ Paso</button>
+        <button class="btn primary" id="btnAuto">▶▶ Auto</button>
+        <button class="btn danger" id="btnReset">↺ Reiniciar</button>
+    </div>
+
+    <!-- SIMULATORS -->
+    <div class="sim-grid">
+
+        <!-- DIALSORT -->
+        <div class="sim-panel panel-dial">
+            <div class="sim-header">
+                <div class="sim-dot dot-dial"></div>
+                <div class="sim-header-title title-dial">DIALSORT — Histograma Plano O(n + U)</div>
+            </div>
+            <svg id="dialSvg" viewBox="0 0 720 460"></svg>
+            <div class="sim-footer">
+                <div class="stat-row">
+                    <div class="stat-chip">Fase: <span id="dFase">inicio</span></div>
+                    <div class="stat-chip">Barrido k: <span id="dBarrido">—</span></div>
+                    <div class="stat-chip">U: <span id="dU">16</span></div>
+                    <div class="stat-chip">Complejidad: <span>O(n + U)</span></div>
+                </div>
+                <div class="explain" id="dExplain">
+                    DialSort construye un histograma plano H[0..U-1]. Cada clave k incrementa H[k]. Luego un barrido de 0 a U emite cada valor H[k] veces. Sin comparaciones.
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><span class="ld" style="background:#5599ff"></span>paquete clave</div>
+                    <div class="legend-item"><span class="ld" style="background:#3dffa0"></span>cubeta activa</div>
+                    <div class="legend-item"><span class="ld" style="background:#ffcc44"></span>conteo</div>
+                    <div class="legend-item"><span class="ld" style="background:#88f0b2"></span>frente de barrido</div>
+                </div>
+                <div class="ctrl-label" style="margin-top:2px;">Salida ordenada</div>
+                <div class="output-box" id="dOut">—</div>
+            </div>
+        </div>
+
+        <!-- RADIXSORT -->
+        <div class="sim-panel panel-radix">
+            <div class="sim-header">
+                <div class="sim-dot dot-radix"></div>
+                <div class="sim-header-title title-radix">RADIXSORT LSD — Base 256, 4 Pasadas O(n·k)</div>
+            </div>
+            <svg id="radixSvg" viewBox="0 0 720 460"></svg>
+            <div class="sim-footer">
+                <div class="stat-row">
+                    <div class="stat-chip">Fase: <span id="rFase">inicio</span></div>
+                    <div class="stat-chip">Pasada: <span id="rPasada">—</span></div>
+                    <div class="stat-chip">Bits: <span id="rBits">—</span></div>
+                    <div class="stat-chip">Complejidad: <span>O(n · k)</span></div>
+                </div>
+                <div class="explain" id="rExplain">
+                    RadixSort LSD procesa 8 bits por pasada (4 pasadas para int32). En cada pasada extrae el dígito, cuenta frecuencias, calcula prefijos y dispersa elementos. Independiente de U.
+                </div>
+                <div class="legend">
+                    <div class="legend-item"><span class="ld" style="background:#ff7b54"></span>elemento activo</div>
+                    <div class="legend-item"><span class="ld" style="background:#ffcc44"></span>cubeta de dígito</div>
+                    <div class="legend-item"><span class="ld" style="background:#c084fc"></span>suma de prefijos</div>
+                    <div class="legend-item"><span class="ld" style="background:#6bf5b0"></span>salida parcial</div>
+                </div>
+                <div class="ctrl-label" style="margin-top:2px;">Salida ordenada</div>
+                <div class="output-box" id="rOut">—</div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer>
+        DialSort vs RadixSort LSD — Simulador Visual · ST0245 Estructuras de Datos y Algoritmos · Universidad EAFIT
+    </footer>
+</div>
+
+<script>
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  ESTADO GLOBAL
+    // ══════════════════════════════════════════════════════════════════════════════
+    const $ = id => document.getElementById(id);
+
+    let S = {
+        valores: [9,3,12,1,7,4,14,2,12,3,0,15,7,7,1,10],
+        maxVal: 15,
+
+        // ── DialSort ──
+        dFase: 0,   // 0=inicio 1=inyectar 2=histograma 3=barrido 4=listo
+        dHist: [],
+        dBarrido: 0,
+
+        // ── RadixSort ──
+        rFase: 0,   // 0=inicio 1=contar 2=prefijos 3=dispersar 4=listo
+        rPasada: 0, // 0-3
+        rBuf: [],
+        rCnt: [],
+        rPre: [],
+        rOut: [],
+        rIntermedio: [], // estado después de cada pasada completa
+
+        autoTimer: null,
+    };
+
+    function clamp(n,a,b){ return Math.max(a,Math.min(b,n)); }
+
+    function parsearVec(txt){
+        return txt.split(/[,\s]+/).map(s=>s.trim()).filter(Boolean)
+            .map(Number).filter(n=>Number.isFinite(n)&&n>=0)
+            .map(n=>clamp(Math.floor(n),0,S.maxVal));
+    }
+
+    function vecAleatorio(){
+        return Array.from({length:16},()=>Math.floor(Math.random()*(S.maxVal+1)));
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  INICIALIZACION
+    // ══════════════════════════════════════════════════════════════════════════════
+    function iniciar(){
+        const U = S.maxVal + 1;
+        // DialSort
+        S.dFase = 0;
+        S.dHist = Array(U).fill(0);
+        S.dBarrido = 0;
+        // RadixSort
+        S.rFase = 0;
+        S.rPasada = 0;
+        S.rBuf = [...S.valores];
+        S.rCnt = Array(256).fill(0);
+        S.rPre = Array(256).fill(0);
+        S.rOut = [];
+        S.rIntermedio = [[...S.valores]]; // pasada 0 = entrada original
+        renderTodo();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  LOGICA DE PASOS
+    // ══════════════════════════════════════════════════════════════════════════════
+    function pasoDial(){
+        const U = S.maxVal + 1;
+        if(S.dFase === 0){
+            S.dFase = 1; // mostrar inyección
+        } else if(S.dFase === 1){
+            // construir histograma
+            S.dHist = Array(U).fill(0);
+            S.valores.forEach(v => S.dHist[v]++);
+            S.dFase = 2;
+        } else if(S.dFase === 2){
+            S.dBarrido = 0;
+            S.dFase = 3;
+        } else if(S.dFase === 3){
+            S.dBarrido++;
+            if(S.dBarrido >= U) S.dFase = 4;
+        }
+    }
+
+    function pasoRadix(){
+        if(S.rFase === 4) return;
+
+        if(S.rFase === 0){
+            // comenzar pasada actual: contar dígitos
+            const sh = S.rPasada * 8;
+            S.rCnt = Array(256).fill(0);
+            S.rBuf.forEach(v => {
+                const d = (v >> sh) & 0xFF;
+                S.rCnt[d]++;
+            });
+            S.rFase = 1;
+        } else if(S.rFase === 1){
+            // calcular suma de prefijos
+            S.rPre = [...S.rCnt];
+            let tot = 0;
+            for(let d=0; d<256; d++){
+                const c = S.rPre[d];
+                S.rPre[d] = tot;
+                tot += c;
+            }
+            S.rFase = 2;
+        } else if(S.rFase === 2){
+            // dispersar elementos
+            const sh = S.rPasada * 8;
+            const tmp = Array(S.rBuf.length);
+            const pos = [...S.rPre];
+            S.rBuf.forEach(v => {
+                const d = (v >> sh) & 0xFF;
+                tmp[pos[d]++] = v;
+            });
+            S.rBuf = tmp;
+            S.rIntermedio.push([...S.rBuf]);
+            S.rFase = 3;
+        } else if(S.rFase === 3){
+            S.rPasada++;
+            if(S.rPasada >= 4){
+                S.rOut = [...S.rBuf];
+                S.rFase = 4;
+            } else {
+                S.rFase = 0; // próxima pasada
+            }
+        }
+    }
+
+    function paso(){
+        if(S.dFase < 4) pasoDial();
+        if(S.rFase < 4) pasoRadix();
+        renderTodo();
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  SVG HELPERS
+    // ══════════════════════════════════════════════════════════════════════════════
+    function R(x,y,w,h,fill,stroke='none',rx=8,sw=1.2){
+        return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    }
+    function T(x,y,s,sz=12,fill='#e8f2ff',fw=600,anchor='middle'){
+        return `<text x="${x}" y="${y}" fill="${fill}" font-size="${sz}" font-weight="${fw}" text-anchor="${anchor}" font-family="'JetBrains Mono',monospace">${s}</text>`;
+    }
+    function L(x1,y1,x2,y2,stroke='#1e3660',sw=1.5,dash=''){
+        return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${sw}" ${dash?`stroke-dasharray="${dash}"`:''}/>`;
+    }
+    function C(x,y,r,fill,stroke='none',sw=1){
+        return `<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  RENDER DIALSORT
+    // ══════════════════════════════════════════════════════════════════════════════
+    function renderDial(){
+        const W=720, H=460;
+        const p=[];
+        const U = S.maxVal + 1;
+        const fase = S.dFase;
+        const vals = S.valores;
+        const n = vals.length;
+
+        p.push(R(0,0,W,H,'#05090f','none',0));
+
+        // ── Fila de entrada ───────────────────────────────────────────────────────
+        const lY=38, pkW=Math.min(48,(W-60)/Math.max(1,n)), pkG=4;
+        const lTot=pkW*n+pkG*(n-1);
+        const lX0=(W-lTot)/2;
+        p.push(T(22,lY+18,'ENTRADA',10,'#3a5880',700,'start'));
+
+        vals.forEach((v,i)=>{
+            const x=lX0+i*(pkW+pkG);
+            const act=fase>=1;
+            p.push(R(x,lY,pkW,30,act?'#0c1e38':'#080f1e',act?'#1e4060':'#152040',7));
+            p.push(T(x+pkW/2,lY+20,String(v),12,act?'#c8e0ff':'#4a6888',700));
+        });
+
+        // ── Histograma ────────────────────────────────────────────────────────────
+        const hY=86, hH=240;
+        const bW=Math.min(40,(W-60)/Math.max(1,U));
+        const bG=Math.max(1,(W-70-bW*U)/Math.max(1,U-1));
+        const bX0=(W-(bW*U+bG*(U-1)))/2;
+        const maxC=Math.max(1,...S.dHist);
+
+        p.push(T(22,hY+12,'H[k]',10,'#3a5880',700,'start'));
+
+        for(let k=0; k<U; k++){
+            const x=bX0+k*(bW+bG);
+            const cnt=S.dHist[k];
+            const esBarrido=fase===3&&k===S.dBarrido;
+            const esPasado=fase===3&&k<S.dBarrido;
+            const esListo=fase===4;
+
+            const barH=cnt>0?Math.max(6,(cnt/maxC)*(hH-36)):0;
+            const barY=hY+hH-28-barH;
+
+            const bgFill=esBarrido?'#0e2e1e':(cnt>0?'#0a1828':'#060c16');
+            const bgStroke=esBarrido?'#3dffa0':(cnt>0?'#1e4060':'#0e1e34');
+            p.push(R(x,hY,bW,hH-22,bgFill,bgStroke,6));
+
+            if(barH>0){
+                const col=esBarrido?'#3dffa0':(esPasado||esListo?'#5599ff':'#ffcc44');
+                p.push(R(x+2,barY,bW-4,barH,col,'none',4));
+                p.push(T(x+bW/2,barY-4,String(cnt),9,col,700));
+            }
+
+            p.push(T(x+bW/2,hY+hH-8,String(k),9,esBarrido?'#3dffa0':'#3a5880',700));
+
+            if(esBarrido){
+                p.push(L(x+bW/2,hY-14,x+bW/2,hY,'#3dffa0',2,'3 3'));
+                p.push(C(x+bW/2,hY-18,5,'#3dffa0'));
+            }
+
+            // flechas de inyección
+            if(fase===1){
+                vals.forEach((v,i)=>{
+                    if(v===k){
+                        const srcX=lX0+i*(pkW+pkG)+pkW/2;
+                        p.push(L(srcX,lY+30,x+bW/2,hY,'#5599ff',1,'4 4'));
+                        p.push(C(x+bW/2,hY+4,6,'#5599ff','#a0c8ff',1.5));
+                        p.push(T(x+bW/2,hY+8,String(v),8,'#04090f',800));
+                    }
+                });
+            }
+        }
+
+        // eje
+        p.push(L(bX0-6,hY,bX0-6,hY+hH-22,'#1e3660',1.2));
+        p.push(L(bX0-6,hY+hH-22,bX0+bW*U+bG*(U-1)+6,hY+hH-22,'#1e3660',1.2));
+
+        // ── Salida ────────────────────────────────────────────────────────────────
+        const outY=hY+hH+10;
+        p.push(T(22,outY+18,'SALIDA',10,'#3a5880',700,'start'));
+        if(fase>=3){
+            const out=[];
+            const lim=fase===3?S.dBarrido:S.maxVal;
+            for(let k=0;k<=lim;k++) for(let c=0;c<S.dHist[k];c++) out.push(k);
+            const oW=Math.min(36,(W-80)/Math.max(1,out.length));
+            const oG=3;
+            const oTot=oW*out.length+oG*(out.length-1);
+            const oX0=(W-oTot)/2;
+            out.forEach((v,i)=>{
+                const x=oX0+i*(oW+oG);
+                p.push(R(x,outY,oW,26,'#081e12','#1a6040',5));
+                p.push(T(x+oW/2,outY+18,String(v),10,'#3dffa0',700));
+            });
+        }
+
+        // etiqueta de fase
+        const faseNombres=['Inicio','Inyectando claves','Construyendo H[k]','Barriendo universo','Completo ✓'];
+        p.push(R(W/2-95,H-26,190,20,'#060c16','#1e3660',8));
+        p.push(T(W/2,H-12,faseNombres[fase]||'Inicio',11,'#3dffa0',700));
+
+        $('dialSvg').innerHTML=p.join('');
+
+        // stats
+        $('dFase').textContent=faseNombres[fase];
+        $('dBarrido').textContent=fase>=3?S.dBarrido:'—';
+        $('dU').textContent=U;
+
+        const explicaciones=[
+            `DialSort asigna cada clave directamente a su posición en H[k]. No se comparan elementos entre sí.`,
+            `Inyección: cada clave k vuela al cubo H[k]. Sin ordenar, solo indexación directa por valor.`,
+            `Histograma listo: H[k] = cantidad de veces que k aparece. El orden está implícito en el histograma.`,
+            `Barriendo k=0..${S.maxVal}. Por cada k se emite k exactamente H[k] veces. Frente de barrido avanza →`,
+            `Completo. El orden emergió del espacio de direcciones. O(n+U), cero comparaciones.`,
+        ];
+        $('dExplain').textContent=explicaciones[fase];
+
+        if(fase>=3){
+            const out=[];
+            const lim=fase===3?S.dBarrido:S.maxVal;
+            for(let k=0;k<=lim;k++) for(let c=0;c<S.dHist[k];c++) out.push(k);
+            $('dOut').textContent=out.length?'[ '+out.join(' → ')+' ]':'—';
+        } else { $('dOut').textContent='—'; }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  RENDER RADIXSORT
+    // ══════════════════════════════════════════════════════════════════════════════
+    function renderRadix(){
+        const W=720, H=460;
+        const p=[];
+        const fase=S.rFase;
+        const pasada=S.rPasada;
+        const vals=S.valores;
+        const n=vals.length;
+        const sh=Math.min(pasada,3)*8;
+
+        p.push(R(0,0,W,H,'#05090f','none',0));
+
+        // ── Fila de entrada ───────────────────────────────────────────────────────
+        const lY=38, pkW=Math.min(48,(W-60)/Math.max(1,n)), pkG=4;
+        const lTot=pkW*n+pkG*(n-1);
+        const lX0=(W-lTot)/2;
+        p.push(T(22,lY+18,'BUFFER',10,'#3a5880',700,'start'));
+
+        const bufActual=fase>=2?S.rBuf:(S.rIntermedio[pasada]||vals);
+        bufActual.forEach((v,i)=>{
+            const x=lX0+i*(pkW+pkG);
+            const dig=(v>>sh)&0xFF;
+            p.push(R(x,lY,pkW,30,'#0c1428','#1e3060',7));
+            p.push(T(x+pkW/2,lY+13,String(v),11,'#c8d8ff',700));
+            p.push(T(x+pkW/2,lY+26,`d:${dig}`,8,'#7a8a99',500));
+        });
+
+        // ── Cubetas de dígitos (mostramos los 16 usados del rango del input) ──────
+        // Solo mostramos los dígitos que realmente aparecen para no saturar
+        const shActual=Math.min(pasada,3)*8;
+        const digitosUsados=new Set(S.valores.map(v=>(v>>shActual)&0xFF));
+        const digsArr=[...digitosUsados].sort((a,b)=>a-b);
+        const numDigs=Math.max(1,digsArr.length);
+
+        const cubY=82, cubH=200;
+        const cubW=Math.min(60,(W-60)/Math.max(1,numDigs));
+        const cubG=Math.max(3,(W-80-cubW*numDigs)/Math.max(1,numDigs-1));
+        const cubX0=(W-(cubW*numDigs+cubG*(numDigs-1)))/2;
+        const maxCnt=Math.max(1,...digsArr.map(d=>S.rCnt[d]||0));
+
+        p.push(T(22,cubY+12,'CUBETAS',10,'#3a5880',700,'start'));
+
+        digsArr.forEach((d,idx)=>{
+            const x=cubX0+idx*(cubW+cubG);
+            const cnt=S.rCnt[d]||0;
+            const pre=S.rPre[d]||0;
+            const barH=cnt>0?Math.max(6,(cnt/maxCnt)*(cubH-50)):0;
+            const barY=cubY+cubH-36-barH;
+
+            const activo=fase>=1&&cnt>0;
+            p.push(R(x,cubY,cubW,cubH-20,activo?'#1a1030':'#080c18',activo?'#4a2060':'#102030',7));
+
+            if(barH>0&&fase>=1){
+                p.push(R(x+3,barY,cubW-6,barH,'#ff7b54','none',4));
+                p.push(T(x+cubW/2,barY-4,String(cnt),9,'#ff7b54',700));
+            }
+
+            p.push(T(x+cubW/2,cubY+15,`d=${d}`,10,'#c084fc',700));
+            p.push(T(x+cubW/2,cubY+cubH-24,`cnt:${cnt}`,9,'#6a5080',600));
+            if(fase>=2)
+                p.push(T(x+cubW/2,cubY+cubH-10,`pos:${pre}`,9,'#c084fc',600));
+        });
+
+        // ── Estado del buffer después de dispersión ───────────────────────────────
+        const bufY=cubY+cubH+12;
+        p.push(T(22,bufY+12,'BUF ORDENADO (pasada actual)',10,'#3a5880',700,'start'));
+        if(fase>=3||S.rIntermedio.length>pasada+1){
+            const bufMostrar=S.rIntermedio[pasada+1]||(fase===4?S.rOut:[]);
+            const oW=Math.min(36,(W-80)/Math.max(1,bufMostrar.length));
+            const oG=3;
+            const oTot=oW*bufMostrar.length+oG*(bufMostrar.length-1);
+            const oX0=(W-oTot)/2;
+            bufMostrar.forEach((v,i)=>{
+                const x=oX0+i*(oW+oG);
+                const color=fase===4?'#081e12':'#0c1428';
+                const border=fase===4?'#1a6040':'#2a5070';
+                const txt2=fase===4?'#3dffa0':'#6bf5b0';
+                p.push(R(x,bufY,oW,26,color,border,5));
+                p.push(T(x+oW/2,bufY+18,String(v),10,txt2,700));
+            });
+        } else {
+            p.push(R(40,bufY,W-80,26,'#060c16','#0e1e34',8));
+            p.push(T(W/2,bufY+18,'— esperando dispersión —',11,'#2a4060',500));
+        }
+
+        // ── Indicador de pasadas ───────────────────────────────────────────────────
+        const pasY=bufY+44;
+        const pasLabels=['Pasada 0\nbits 0-7','Pasada 1\nbits 8-15','Pasada 2\nbits 16-23','Pasada 3\nbits 24-31'];
+        const pasW=(W-80)/4;
+        pasLabels.forEach((lbl,i)=>{
+            const x=40+i*pasW;
+            const actual=i===pasada;
+            const hecho=i<pasada||(i===pasada&&fase===4);
+            const bgC=hecho?'#0d2a1a':(actual?'#1a0c30':'#060c16');
+            const bdC=hecho?'#1a6040':(actual?'#6030a0':'#0e1e34');
+            const txtC=hecho?'#3dffa0':(actual?'#c084fc':'#2a4060');
+            p.push(R(x+2,pasY,pasW-4,32,bgC,bdC,8));
+            const [l1,l2]=lbl.split('\n');
+            p.push(T(x+pasW/2,pasY+14,l1,9,txtC,700));
+            p.push(T(x+pasW/2,pasY+26,l2,8,hecho?'#1a8050':(actual?'#8050c0':'#1e3050'),600));
+        });
+
+        // etiqueta de fase
+        const faseNombresR=[
+            'Inicio',
+            `Pasada ${pasada}: contando dígitos (bits ${sh}-${sh+7})`,
+            `Pasada ${pasada}: calculando prefijos`,
+            `Pasada ${pasada}: dispersando elementos`,
+            'Completo ✓',
+        ];
+        p.push(R(W/2-130,H-26,260,20,'#060c16','#1e3060',8));
+        p.push(T(W/2,H-12,faseNombresR[fase]||'Inicio',11,'#ff7b54',700));
+
+        $('radixSvg').innerHTML=p.join('');
+
+        // stats
+        $('rFase').textContent=faseNombresR[fase];
+        $('rPasada').textContent=fase<4?pasada:'listo';
+        $('rBits').textContent=fase<4?`${sh}-${sh+7}`:'—';
+
+        const explicacionesR=[
+            `RadixSort LSD procesa enteros por dígitos de menos a más significativo. 4 pasadas de 8 bits = 32 bits totales. Independiente del universo U.`,
+            `Pasada ${pasada} (bits ${sh}-${sh+7}): extrayendo dígito = (valor >> ${sh}) & 0xFF de cada elemento. Contando frecuencias en 256 cubetas.`,
+            `Calculando suma de prefijos sobre los conteos. Esto determina la posición de salida de cada grupo de dígitos en el buffer temporal.`,
+            `Dispersando: cada elemento va a su posición correcta según su dígito. Proceso estable (preserva orden relativo entre iguales).`,
+            `Completo. Las 4 pasadas produjeron el arreglo ordenado. O(n·k) con k=4 fijo, sin importar el rango de valores.`,
+        ];
+        $('rExplain').textContent=explicacionesR[fase];
+
+        const outFinal=fase===4?S.rOut:(S.rIntermedio[pasada+1]||[]);
+        $('rOut').textContent=outFinal.length?'[ '+outFinal.join(' → ')+' ]':'—';
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  RENDER COMPLETO
+    // ══════════════════════════════════════════════════════════════════════════════
+    function renderTodo(){
+        renderDial();
+        renderRadix();
+        const listo=S.dFase>=4&&S.rFase>=4;
+        $('stepBadge').textContent=listo
+            ?'Fase: completo ✓'
+            :`Paso dial:${S.dFase} radix:${S.rFase}/pas${S.rPasada}`;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  AUTO
+    // ══════════════════════════════════════════════════════════════════════════════
+    function detenerAuto(){
+        if(S.autoTimer){ clearInterval(S.autoTimer); S.autoTimer=null; }
+    }
+    function iniciarAuto(){
+        detenerAuto();
+        S.autoTimer=setInterval(()=>{
+            const listo=S.dFase>=4&&S.rFase>=4;
+            if(listo){ detenerAuto(); $('btnAuto').textContent='▶▶ Auto'; return; }
+            paso();
+        },750);
+        $('btnAuto').textContent='⏸ Pausar';
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════════
+    //  EVENTOS
+    // ══════════════════════════════════════════════════════════════════════════════
+    $('btnApply').addEventListener('click',()=>{
+        detenerAuto(); $('btnAuto').textContent='▶▶ Auto';
+        S.maxVal=clamp(Number($('maxVal').value)||15,3,63);
+        S.valores=parsearVec($('vecInput').value);
+        if(!S.valores.length) S.valores=[0];
+        iniciar();
+    });
+
+    $('btnRandom').addEventListener('click',()=>{
+        detenerAuto(); $('btnAuto').textContent='▶▶ Auto';
+        S.maxVal=clamp(Number($('maxVal').value)||15,3,63);
+        S.valores=vecAleatorio();
+        $('vecInput').value=S.valores.join(',');
+        iniciar();
+    });
+
+    $('btnStep').addEventListener('click',()=>{ detenerAuto(); $('btnAuto').textContent='▶▶ Auto'; paso(); });
+
+    $('btnAuto').addEventListener('click',()=>{
+        if(S.autoTimer){ detenerAuto(); $('btnAuto').textContent='▶▶ Auto'; }
+        else iniciarAuto();
+    });
+
+    $('btnReset').addEventListener('click',()=>{
+        detenerAuto(); $('btnAuto').textContent='▶▶ Auto'; iniciar();
+    });
+
+    // inicio
+    iniciar();
+</script>
+</body>
+</html>
