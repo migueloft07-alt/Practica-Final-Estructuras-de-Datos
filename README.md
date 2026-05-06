@@ -1,146 +1,149 @@
-# Practica-Final-Estructuras-de-Datos
-DialSort vs RadixSort LSD — Benchmark y Simulador Visual
+# Practice II – Data Structures and Algorithms (C++)
 
-ST0245 — Estructuras de Datos y Algoritmos
-Escuela de Ciencias Aplicadas e Ingeniería — Universidad EAFIT
-Docente: Alexander Narváez Berrío | Abril 2026
+**Miguel Jimenez Gomez – Juliana Sepulveda Saldarriaga**
 
+ST0245 - SI001 - Data Structures and Algorithms  
+School of Applied Sciences and Engineering – Universidad EAFIT  
+Instructor: Alexander Narváez Berrío
 
-👥 Integrantes del equipo
-NombreCorreo[Nombre 1][correo@eafit.edu.co][Nombre 2][correo@eafit.edu.co]
+---
 
-📋 Descripción del proyecto
-Este proyecto implementa y compara experimentalmente tres estrategias de ordenamiento de enteros:
+## Description
 
-DialSort (secuencial) — algoritmo no comparativo basado en histograma plano
-DialSort Paralelo — variante multi-hilo de DialSort
-RadixSort LSD (propuesta alternativa) — ordenamiento por dígitos, base 256, 4 pasadas
+C++ program that sorts integers using three non-comparative algorithms — **DialSort**, **Parallel DialSort**, and **RadixSort LSD** — and benchmarks them against `std::sort` (GCC introsort) on datasets of up to 10,000,000 records. Also includes an HTML visual simulator that shows DialSort and RadixSort step by step.
 
-El análisis compara los algoritmos en términos de complejidad algorítmica (Big O), tiempo de ejecución real y consumo de memoria, variando el tamaño de entrada (n), el tamaño del universo (U) y la distribución de los datos.
-Adicionalmente, el proyecto incluye un simulador visual interactivo en HTML que muestra el comportamiento interno de DialSort y RadixSort paso a paso.
+---
 
-🗂️ Estructura del repositorio
-📁 untitled/
-├── 📄 main.cpp              # Código fuente del benchmark en C++
-├── 📄 simulador.html        # Simulador visual interactivo (abrir en navegador)
-├── 📄 CMakeLists.txt        # Configuración de compilación
-├── 📄 README.md             # Este archivo
-└── 📁 datasets/             # Datasets generados automáticamente
-    ├── dataset_n100000_U256_uniforme.csv
-    ├── dataset_n100000_U256_sesgada.csv
-    ├── dataset_n100000_U256_ordenada.csv
-    ├── dataset_n100000_U256_inversa.csv
-    ├── dataset_n100000_U1024_uniforme.csv
-    ├── dataset_n100000_U1024_sesgada.csv
-    ├── dataset_n100000_U1024_ordenada.csv
-    ├── dataset_n100000_U1024_inversa.csv
-    ├── dataset_n100000_U65536_uniforme.csv
-    ├── dataset_n100000_U65536_sesgada.csv
-    ├── dataset_n100000_U65536_ordenada.csv
-    ├── dataset_n100000_U65536_inversa.csv
-    ├── dataset_n1000000_U256_uniforme.csv
-    ├── dataset_n1000000_U256_sesgada.csv
-    ├── dataset_n1000000_U256_ordenada.csv
-    ├── dataset_n1000000_U256_inversa.csv
-    ├── dataset_n1000000_U1024_uniforme.csv
-    ├── dataset_n1000000_U1024_sesgada.csv
-    ├── dataset_n1000000_U1024_ordenada.csv
-    ├── dataset_n1000000_U1024_inversa.csv
-    ├── dataset_n1000000_U65536_uniforme.csv
-    ├── dataset_n1000000_U65536_sesgada.csv
-    ├── dataset_n1000000_U65536_ordenada.csv
-    └── dataset_n1000000_U65536_inversa.csv
+## Objective
 
-⚙️ Requisitos del sistema
-HerramientaVersión mínimag++11.0 o superiorC++ estándarC++17CMake3.20 o superiorSistema operativoWindows 10/11, Linux, macOS
+Determine under which conditions each algorithm is the best choice, varying the input size (n), the universe size (U), and the data distribution.
 
-🚀 Instrucciones de compilación y ejecución
-Opción 1 — Usando CLion (recomendado)
+---
 
-Abrir CLion y cargar la carpeta del proyecto
-Verificar que CMakeLists.txt contenga:
+## Project Structure
 
-cmake   cmake_minimum_required(VERSION 3.20)
-   project(untitled)
-   set(CMAKE_CXX_STANDARD 17)
-   add_executable(untitled main.cpp)
-   target_link_libraries(untitled psapi)
+```
+├── src/
+│   └── DialsortVSRadixsort.cpp   # Full benchmark and dataset export
+├── Simulador/
+│   └── DialsortVSRadixsort.html  # Visual simulator (open in browser)
+├── Informe/                      # Technical report (PDF/DOCX)
+├── CMakeLists.txt
+└── README.md
+```
 
-Presionar Ctrl + F9 para compilar
-Presionar Shift + F10 para ejecutar
+Running the binary automatically creates a `datasets/` folder with 24 CSV test files.
 
-Opción 2 — Usando terminal (g++ directo)
-bash# Linux / macOS
-g++ -O3 -std=c++17 -pthread -o benchmark main.cpp
+---
+
+## Implemented Algorithms
+
+### A) DialSort (sequential)
+
+Non-comparative. Builds a flat histogram `H[0..U-1]` with a single pass over n, then iterates over H emitting each value `H[k]` times. Handles negative numbers by shifting by `mn`. Skipped if `U > 10,000,000`.
+
+### B) Parallel DialSort
+
+Same idea as DialSort, but the **histogram counting phase** is distributed across 8 threads. Each thread builds a local histogram without race conditions; the merge and final emission are sequential.
+
+### C) RadixSort LSD (alternative proposal)
+
+Non-comparative, base 256, 4 passes. Handles signed integers by applying XOR with `0x80000000` (flips the sign bit). Each pass counts frequencies in 256 buckets, computes prefix sums, and scatters stably. The number of passes is **fixed**: performance does not depend on U.
+
+---
+
+## Benchmark Parameters
+
+| Parameter | Values |
+|---|---|
+| Input sizes (n) | 10,000 · 100,000 · 1,000,000 · 10,000,000 |
+| Universe sizes (U) | 256 · 1,024 · 65,536 |
+| Distributions | uniform, skewed (80% in bottom 5%), sorted, reverse |
+| Rounds | 3 warm-up (discarded) + 7 measured (best time reported) |
+| Parallel threads | 8 |
+| Random seed | 20260321 |
+
+---
+
+## Compilation and Execution
+
+**CLion:** open the project, let CMake configure, and run with `Shift + F10`.
+
+**Command line (Linux / macOS):**
+
+```bash
+g++ -O3 -std=c++17 -pthread -o benchmark src/DialsortVSRadixsort.cpp
 ./benchmark
+```
 
-# Windows (PowerShell con MinGW)
-g++ -O3 -std=c++17 -pthread -o benchmark.exe main.cpp -lpsapi
+**Command line (Windows / MinGW):**
+
+```bash
+g++ -O3 -std=c++17 -pthread -o benchmark.exe src/DialsortVSRadixsort.cpp -lpsapi
 .\benchmark.exe
-Opción 3 — PowerShell desde cmake-build-debug
-powershellcd C:\Users\User\CLionProjects\untitled\cmake-build-debug
-.\untitled.exe
+```
 
-Nota: Los datasets se generan automáticamente en la carpeta datasets/ al ejecutar el programa. No es necesario crearla manualmente.
+To open the simulator, open `Simulador/DialsortVSRadixsort.html` in any browser.
 
+> **Note:** If CLion shows the error `Cannot find source file`, make sure `CMakeLists.txt` references `src/DialsortVSRadixsort.cpp` and not just `DialsortVSRadixsort.cpp`.
 
-🌐 Simulador Visual
-Abrir el archivo simulador.html directamente en cualquier navegador moderno (Chrome, Firefox, Edge).
-Funcionalidades:
+---
 
-Visualización paso a paso del comportamiento interno de DialSort y RadixSort
-Botón Paso para avanzar manualmente
-Botón Auto para ejecución automática
-Botón Aleatorio para generar vectores de prueba aleatorios
-Soporte para vectores personalizados y valor máximo configurable
+## Sample Output
 
+The program output is organized in 7 sections. Below is the general structure with a representative block from the timing section.
+```
+======================================================================================================
+  BENCHMARK: DialSort vs. RadixSort LSD vs. std::sort
+  Materia : ST0245 - Estructuras de Datos y Algoritmos — EAFIT
+  Docente : Alexander Narvaez Berrio
+======================================================================================================
+  Compilador   : g++ 13.1.0
+  Flags        : -O3 -std=c++17 -pthread
+  Hilos        : 8
+  Calentamiento: 3 ejecuciones descartadas
+  Medicion     : mejor de 7 ejecuciones
+  Semilla      : 20260321
+======================================================================================================
 
-📊 Parámetros del benchmark
-ParámetroValoresTamaño de entrada (n)100,000 · 1,000,000 · 10,000,000Tamaño del universo (U)256 · 1,024 · 65,536DistribucionesUniforme · Sesgada · Ordenada · InversaRondas de calentamiento1 (descartada)Rondas de medición3 (se reporta el mejor tiempo)Semilla aleatoria20260321Hilos (DialSort Paralelo)8
+SECCION 1 — VISUALIZACION DEL COMPORTAMIENTO INTERNO
+  Traza paso a paso de DialSort y RadixSort sobre n=16 elementos.
 
-🧮 Complejidad algorítmica
-AlgoritmoMejor CasoCaso PromedioPeor CasoEspacioComparativostd::sort (introsort)O(n log n)O(n log n)O(n log n)O(log n)✅ SíDialSortO(n + U)O(n + U)O(n + U)O(U)❌ NoDialSort ParaleloO(n/t + U)O(n/t + U)O(n/t + U)O(t·U)❌ NoRadixSort LSDO(n·k)O(n·k)O(n·k)O(n + B)❌ No
+SECCION 2 — COMPLEJIDAD ALGORITMICA
+  Tabla Big O: mejor / promedio / peor caso y espacio.
 
-Leyenda: n = elementos · U = universo (max−min+1) · t = hilos · k = 4 pasadas · B = 256
+SECCION 3 — TIEMPO DE EJECUCION REAL
 
+  Algoritmo             Dist.       N           U       ms (mejor)   M claves/s    vs std::sort  mem KB
+  -------------------------------------------------------------------------------------------------
+  std::sort             uniforme    10000       256     1.054        9.486         1.000         1 KB
+  DialSort              uniforme    10000       256     0.045        221.729       23.375        1 KB
+  RadixSort LSD         uniforme    10000       256     0.249        40.128        4.230         80 KB
+  DialSort-Paralelo     uniforme    10000       256     0.499        20.024        2.111         9 KB
+  ...
 
-📈 Resumen de resultados
-Tiempo de ejecución
+SECCION 4 — CONSUMO DE MEMORIA
+  Memoria reservada por cada algoritmo, calculada con sizeof sobre estructuras internas.
 
-DialSort es el más rápido cuando U es pequeño (256, 1024): el histograma cabe completamente en caché L1/L2
-RadixSort LSD es más consistente cuando U es grande (65,536+): su huella de memoria O(n+256) es fija e independiente de U
-DialSort Paralelo supera a ambos para n = 10,000,000 con U pequeño gracias a los 8 hilos
-Ambos superan ampliamente a std::sort en datos enteros (entre 5x y 52x más rápidos)
+SECCION 5 — ANALISIS COMPARATIVO FINAL
+  Conteo de victorias DialSort vs RadixSort por tamano de universo, ratios y conclusiones.
 
-Consumo de memoria
-AlgoritmoU=256 N=100KU=65536 N=100KU=65536 N=1Mstd::sort1 KB1 KB1 KBDialSort1 KB256 KB256 KBDialSort Paralelo9 KB2,304 KB2,304 KBRadixSort LSD783 KB783 KB7,814 KB
-¿Qué algoritmo usar según el escenario?
-EscenarioAlgoritmo recomendadoU ≤ 1,024 y n grandeDialSort o DialSort ParaleloU ≥ 65,536 o U desconocidoRadixSort LSDDatos no enteros o U enormestd::sort
+SECCION 6 — SALIDA CSV
+  Datos exportables a hoja de calculo.
 
-📁 Formato de los datasets
-Cada archivo CSV tiene el siguiente formato:
-indice,valor
-0,142
-1,891
-2,67
-...
-Nomenclatura de archivos:
-dataset_n{N}_U{U}_{distribucion}.csv
-Distribuciones incluidas:
+SECCION 7 — EXPORTACION DE DATASETS
+  Genera 24 archivos CSV en datasets/ (4 distribuciones x 3 universos x 2 tamaños).
 
-uniforme — valores aleatorios uniformemente distribuidos en [0, U)
-sesgada — 80% de valores en el 5% inferior del universo (hot-spot)
-ordenada — datos ya ordenados de menor a mayor
-inversa — datos ordenados de mayor a menor
+  Verificacion de correctitud: TODAS LAS PRUEBAS PASARON
+```
 
+> **Note:** Section 3 evaluates 48 combinations (4 sizes × 3 universes × 4 distributions) with 4 algorithms each, producing 192 rows. The block shown corresponds to the first case (n=10,000, U=256, uniform distribution); the rest follow the same format.
 
-🔍 Secciones del reporte generado
-Al ejecutar el programa se generan las siguientes secciones:
+---
 
-Visualización del comportamiento interno — traza paso a paso con n=16 elementos
-Complejidad algorítmica (Big O) — tabla comparativa de mejor, promedio y peor caso
-Tiempo de ejecución real — benchmark completo con todas las combinaciones
-Consumo de memoria — complejidad espacial teórica y mediciones
-Análisis comparativo final — conclusiones y recomendaciones
-Salida CSV — datos exportables para graficar en Excel u hojas de cálculo
-Exportación de datasets — generación automática de los 24 archivos CSV
+## Technical Notes
+
+- Results obtained with g++ 13.1.0 on Windows 11. Absolute times may vary across machines, but the relative rankings between algorithms remain consistent.
+- On non-Windows systems, remove `target_link_libraries(untitled psapi)` from `CMakeLists.txt`. The source code itself compiles without changes.
+- Datasets for n = 10,000,000 are generated in memory but **not** exported to CSV (they would occupy ~1 GB on disk). Only n = 100,000 and n = 1,000,000 are persisted.
+
