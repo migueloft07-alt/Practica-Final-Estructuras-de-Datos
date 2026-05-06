@@ -141,9 +141,14 @@ SECCION 7 — EXPORTACION DE DATASETS
 
 ---
 
-## Technical Notes
+## Report
 
-- Results obtained with g++ 13.1.0 on Windows 11. Absolute times may vary across machines, but the relative rankings between algorithms remain consistent.
-- On non-Windows systems, remove `target_link_libraries(untitled psapi)` from `CMakeLists.txt`. The source code itself compiles without changes.
-- Datasets for n = 10,000,000 are generated in memory but **not** exported to CSV (they would occupy ~1 GB on disk). Only n = 100,000 and n = 1,000,000 are persisted.
+The program itself generates the full report automatically upon execution.
+The output is organized in 7 sections that cover all required points:
+
+- **Implementation approach** — Section 1 (step-by-step internal trace of each algorithm) and Section 2 (Big O complexity table)
+- **Performance measurements** — Section 3 (execution times in ms, M keys/s, speedup vs `std::sort`) and Section 4 (memory usage)
+- **Comparison between algorithms** — Section 5 (win count per universe size, ratios and conclusions)
+
+The full output is saved in `Informe/` for reference.
 
